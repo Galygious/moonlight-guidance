@@ -28,6 +28,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import org.arcanaforge.app.AppContainer
 import org.arcanaforge.app.ui.screens.cardeditor.CardEditorScreen
+import org.arcanaforge.app.ui.screens.charts.NatalChartDetailScreen
+import org.arcanaforge.app.ui.screens.charts.NatalChartLibraryScreen
 import org.arcanaforge.app.ui.screens.deckeditor.DeckEditorScreen
 import org.arcanaforge.app.ui.screens.decks.DeckLibraryScreen
 import org.arcanaforge.app.ui.screens.home.HomeScreen
@@ -220,6 +222,25 @@ fun MoonlightGuidanceApp(
                     viewModelFactory = viewModelFactory,
                     onOpenLayout = { layoutId ->
                         navController.navigate(Screen.LayoutEditor.createRoute(layoutId))
+                    },
+                )
+            }
+            composable(Screen.Charts.route) {
+                NatalChartLibraryScreen(
+                    viewModelFactory = viewModelFactory,
+                    onOpenChart = { chartId ->
+                        navController.navigate(Screen.NatalChartDetail.createRoute(chartId))
+                    },
+                )
+            }
+            composable(
+                route = Screen.NatalChartDetail.route,
+                arguments = listOf(navArgument("chartId") { type = NavType.StringType }),
+            ) {
+                NatalChartDetailScreen(
+                    viewModelFactory = viewModelFactory,
+                    onDeleted = {
+                        navController.popBackStack(Screen.Charts.route, inclusive = false)
                     },
                 )
             }

@@ -15,6 +15,7 @@ import kotlinx.coroutines.withTimeout
 import org.arcanaforge.app.core.database.entity.AIProviderConfigEntity
 import org.arcanaforge.app.data.ai.AiProviderRepository
 import org.arcanaforge.app.domain.ai.AiAuthMode
+import org.arcanaforge.app.domain.ai.AiModelDefaults
 import org.arcanaforge.app.domain.ai.AiProviderType
 
 data class SettingsUiState(
@@ -24,9 +25,12 @@ data class SettingsUiState(
     val apiKeyBaseUrl: String = "",
     val apiKeyValue: String = "",
     val apiKeyImageModel: String = "",
-    val apiKeyTextModel: String = "",
+    val apiKeyTextModel: String = AiModelDefaults.OPENAI_TEXT_MODEL,
     val isSavingApiKey: Boolean = false,
     val isConnectingOAuth: Boolean = false,
+    val codexTextModel: String = AiModelDefaults.OPENAI_TEXT_MODEL,
+    val isCodexModelDirty: Boolean = false,
+    val isSavingCodexModel: Boolean = false,
     val authUrlToOpen: String? = null,
     val message: String? = null,
 )
@@ -46,6 +50,25 @@ class SettingsViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = SettingsUiState(),
     )
+
+    init {
+        viewModelScope.launch {
+            aiProviderRepository.observeConfigs().collect { configs ->
+                val savedCodexModel = configs.firstOrNull {
+                    it.authMode == AiAuthMode.OpenAiCodexOAuth
+                }?.textModel
+                if (!savedCodexModel.isNullOrBlank()) {
+                    formState.update { current ->
+                        if (current.isCodexModelDirty) {
+                            current
+                        } else {
+                            current.copy(codexTextModel = savedCodexModel)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     fun updateApiKeyName(value: String) {
         formState.update { it.copy(apiKeyName = value) }
@@ -78,6 +101,10 @@ class SettingsViewModel(
 
     fun updateApiKeyTextModel(value: String) {
         formState.update { it.copy(apiKeyTextModel = value) }
+    }
+
+    fun updateCodexTextModel(value: String) {
+        formState.update { it.copy(codexTextModel = value, isCodexModelDirty = true) }
     }
 
     fun saveApiKeyConfig() {
@@ -139,6 +166,9 @@ class SettingsViewModel(
             runCatching {
                 withTimeout(OAUTH_TIMEOUT_MILLIS) {
                     aiProviderRepository.finishOpenAiCodexOAuth(session)
+                    aiProviderRepository.saveOpenAiCodexTextModel(
+                        formState.value.codexTextModel.ifBlank { AiModelDefaults.OPENAI_TEXT_MODEL },
+                    )
                 }
             }.onSuccess {
                 formState.update {
@@ -155,6 +185,31 @@ class SettingsViewModel(
                         isConnectingOAuth = false,
                         authUrlToOpen = null,
                         message = error.message ?: "OpenAI account sign-in did not finish.",
+                    )
+                }
+            }
+        }
+    }
+
+    fun saveOpenAiCodexModel() {
+        val model = formState.value.codexTextModel
+        viewModelScope.launch {
+            formState.update { it.copy(isSavingCodexModel = true, message = null) }
+            runCatching {
+                aiProviderRepository.saveOpenAiCodexTextModel(model)
+            }.onSuccess {
+                formState.update {
+                    it.copy(
+                        isCodexModelDirty = false,
+                        isSavingCodexModel = false,
+                        message = "OpenAI account model saved.",
+                    )
+                }
+            }.onFailure { error ->
+                formState.update {
+                    it.copy(
+                        isSavingCodexModel = false,
+                        message = error.message ?: "Could not save OpenAI account model.",
                     )
                 }
             }

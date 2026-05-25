@@ -98,6 +98,10 @@ fun SettingsScreen(
             item {
                 OpenAiAccountCard(
                     isConnecting = uiState.isConnectingOAuth,
+                    textModel = uiState.codexTextModel,
+                    isSavingModel = uiState.isSavingCodexModel,
+                    onTextModelChanged = viewModel::updateCodexTextModel,
+                    onSaveModel = viewModel::saveOpenAiCodexModel,
                     onConnect = viewModel::connectOpenAiAccount,
                 )
             }
@@ -175,6 +179,10 @@ private fun AiProviderConfigRow(
 @Composable
 private fun OpenAiAccountCard(
     isConnecting: Boolean,
+    textModel: String,
+    isSavingModel: Boolean,
+    onTextModelChanged: (String) -> Unit,
+    onSaveModel: () -> Unit,
     onConnect: () -> Unit,
 ) {
     Card(shape = MaterialTheme.shapes.medium) {
@@ -196,9 +204,29 @@ private fun OpenAiAccountCard(
                 AssistChip(onClick = {}, label = { Text("Codex-compatible") })
             }
             Text(
-                text = "Browser sign-in stores refresh tokens encrypted on this device.",
+                text = "Browser sign-in stores refresh tokens encrypted on this device. The text model is saved with this provider so it can be changed without an app update.",
                 style = MaterialTheme.typography.bodyMedium,
             )
+            OutlinedTextField(
+                value = textModel,
+                onValueChange = onTextModelChanged,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Text model") },
+                placeholder = { Text("gpt-5.5") },
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    onClick = onSaveModel,
+                    enabled = !isSavingModel,
+                ) {
+                    Text(if (isSavingModel) "Saving..." else "Save model")
+                }
+            }
             Button(
                 onClick = onConnect,
                 enabled = !isConnecting,

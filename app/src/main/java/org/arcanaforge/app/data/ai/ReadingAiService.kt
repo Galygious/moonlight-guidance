@@ -66,7 +66,8 @@ class OpenAiReadingAiService(
             ?: error("The selected AI provider does not have an API key saved.")
         val apiKey = secureStringStore.decrypt(encryptedApiKey)
         val body = buildResponseBody(
-            model = config.textModel?.ifBlank { null } ?: DEFAULT_MODEL,
+            model = config.textModel?.ifBlank { null }
+                ?: error("Choose a text model for the selected AI provider in Settings."),
             readingContext = readingContext,
             history = history,
             question = question,
@@ -102,7 +103,8 @@ class OpenAiReadingAiService(
         val accountId = freshConfig.oauthAccountId
             ?: error("OpenAI account id is missing. Reconnect the account in Settings.")
         val body = buildResponseBody(
-            model = freshConfig.textModel?.ifBlank { null } ?: DEFAULT_MODEL,
+            model = freshConfig.textModel?.ifBlank { null }
+                ?: error("Choose a text model for the OpenAI account in Settings."),
             readingContext = readingContext,
             history = history,
             question = question,
@@ -249,7 +251,6 @@ class OpenAiReadingAiService(
         const val OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
         const val CODEX_RESPONSES_URL = "https://chatgpt.com/backend-api/codex/responses"
         const val JSON_MEDIA_TYPE = "application/json"
-        const val DEFAULT_MODEL = "gpt-5.4"
         const val MAX_HISTORY_MESSAGES = 8
         const val READING_CHAT_INSTRUCTIONS = """
 You are a reflective tarot, oracle, and custom deck reading companion inside Moonlight Guidance.

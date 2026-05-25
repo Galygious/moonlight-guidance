@@ -6,6 +6,11 @@ import org.arcanaforge.app.core.database.AppDatabase
 import org.arcanaforge.app.core.database.DatabaseSeeder
 import org.arcanaforge.app.core.datastore.SettingsRepository
 import org.arcanaforge.app.core.security.SecureStringStore
+import org.arcanaforge.app.data.astrology.AstronomyEngineNatalChartCalculator
+import org.arcanaforge.app.data.astrology.NatalChartAiChatRepository
+import org.arcanaforge.app.data.astrology.NatalChartRepository
+import org.arcanaforge.app.data.astrology.OfflineNatalChartAiChatRepository
+import org.arcanaforge.app.data.astrology.OfflineNatalChartRepository
 import org.arcanaforge.app.data.ai.AiProviderRepository
 import org.arcanaforge.app.data.ai.OfflineAiProviderRepository
 import org.arcanaforge.app.data.ai.OpenAiReadingAiService
@@ -34,6 +39,8 @@ interface AppContainer {
     val aiProviderRepository: AiProviderRepository
     val readingAiService: ReadingAiService
     val readingAiChatRepository: ReadingAiChatRepository
+    val natalChartRepository: NatalChartRepository
+    val natalChartAiChatRepository: NatalChartAiChatRepository
     val databaseSeeder: DatabaseSeeder
 }
 
@@ -66,6 +73,13 @@ class DefaultAppContainer(context: Context) : AppContainer {
     )
     override val readingAiChatRepository: ReadingAiChatRepository = OfflineReadingAiChatRepository(
         readingAiMessageDao = database.readingAiMessageDao(),
+    )
+    override val natalChartRepository: NatalChartRepository = OfflineNatalChartRepository(
+        natalChartDao = database.natalChartDao(),
+        natalChartCalculator = AstronomyEngineNatalChartCalculator(),
+    )
+    override val natalChartAiChatRepository: NatalChartAiChatRepository = OfflineNatalChartAiChatRepository(
+        natalChartAiMessageDao = database.natalChartAiMessageDao(),
     )
     override val databaseSeeder: DatabaseSeeder = DatabaseSeeder(
         database = database,

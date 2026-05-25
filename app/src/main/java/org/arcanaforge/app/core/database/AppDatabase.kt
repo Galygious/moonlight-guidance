@@ -11,6 +11,8 @@ import org.arcanaforge.app.core.database.dao.AIProviderConfigDao
 import org.arcanaforge.app.core.database.dao.CardDao
 import org.arcanaforge.app.core.database.dao.DeckDao
 import org.arcanaforge.app.core.database.dao.LayoutDao
+import org.arcanaforge.app.core.database.dao.NatalChartAiMessageDao
+import org.arcanaforge.app.core.database.dao.NatalChartDao
 import org.arcanaforge.app.core.database.dao.ReadingAiMessageDao
 import org.arcanaforge.app.core.database.dao.ReadingDao
 import org.arcanaforge.app.core.database.dao.ScheduledReadingDao
@@ -20,6 +22,8 @@ import org.arcanaforge.app.core.database.entity.CardEntity
 import org.arcanaforge.app.core.database.entity.DeckEntity
 import org.arcanaforge.app.core.database.entity.LayoutEntity
 import org.arcanaforge.app.core.database.entity.LayoutSlotEntity
+import org.arcanaforge.app.core.database.entity.NatalChartAiMessageEntity
+import org.arcanaforge.app.core.database.entity.NatalChartEntity
 import org.arcanaforge.app.core.database.entity.ReadingAiMessageEntity
 import org.arcanaforge.app.core.database.entity.ReadingCardEntity
 import org.arcanaforge.app.core.database.entity.ReadingEntity
@@ -38,8 +42,10 @@ import org.arcanaforge.app.core.database.entity.StoredImageEntity
         ReadingCardEntity::class,
         ScheduledReadingEntity::class,
         AIProviderConfigEntity::class,
+        NatalChartEntity::class,
+        NatalChartAiMessageEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(MoonlightTypeConverters::class)
@@ -52,6 +58,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun readingAiMessageDao(): ReadingAiMessageDao
     abstract fun scheduledReadingDao(): ScheduledReadingDao
     abstract fun aiProviderConfigDao(): AIProviderConfigDao
+    abstract fun natalChartDao(): NatalChartDao
+    abstract fun natalChartAiMessageDao(): NatalChartAiMessageDao
 
     companion object {
         const val DATABASE_NAME = "moonlight_guidance.db"
@@ -86,7 +94,50 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS natal_charts (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        label TEXT NOT NULL,
+                        subject_name TEXT NOT NULL,
+                        birth_date TEXT NOT NULL,
+                        birth_time TEXT NOT NULL,
+                        time_known INTEGER NOT NULL,
+                        zone_id TEXT NOT NULL,
+                        location_name TEXT NOT NULL,
+                        latitude REAL,
+                        longitude REAL,
+                        house_system TEXT NOT NULL,
+                        chart_json TEXT NOT NULL,
+                        notes TEXT NOT NULL DEFAULT '',
+                        is_favorite INTEGER NOT NULL DEFAULT 0,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_natal_charts_created_at ON natal_charts(created_at)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_natal_charts_is_favorite ON natal_charts(is_favorite)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS natal_chart_ai_messages (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        chart_id TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        text TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        FOREIGN KEY(chart_id) REFERENCES natal_charts(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_natal_chart_ai_messages_chart_id ON natal_chart_ai_messages(chart_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_natal_chart_ai_messages_created_at ON natal_chart_ai_messages(created_at)")
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(

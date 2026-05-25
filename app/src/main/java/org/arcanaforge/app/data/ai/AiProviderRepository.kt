@@ -7,6 +7,7 @@ import org.arcanaforge.app.core.database.dao.AIProviderConfigDao
 import org.arcanaforge.app.core.database.entity.AIProviderConfigEntity
 import org.arcanaforge.app.core.security.SecureStringStore
 import org.arcanaforge.app.domain.ai.AiAuthMode
+import org.arcanaforge.app.domain.ai.AiModelDefaults
 import org.arcanaforge.app.domain.ai.AiProviderType
 
 interface AiProviderRepository {
@@ -28,6 +29,7 @@ interface AiProviderRepository {
         session: OpenAiCodexOAuthClient.AuthorizationSession,
         input: String,
     )
+    suspend fun saveOpenAiCodexTextModel(textModel: String)
     suspend fun setEnabled(id: String, enabled: Boolean)
     suspend fun delete(id: String)
 }
@@ -104,6 +106,7 @@ class OfflineAiProviderRepository(
             code = code,
             verifier = session.verifier,
         )
+        val existing = aiProviderConfigDao.getById(OPENAI_CODEX_CONFIG_ID)
         val label = tokens.email ?: tokens.accountId
         aiProviderConfigDao.upsert(
             AIProviderConfigEntity(
@@ -116,9 +119,19 @@ class OfflineAiProviderRepository(
                 oauthExpiresAt = tokens.expiresAt,
                 oauthAccountId = tokens.accountId,
                 oauthAccountLabel = label,
+                textModel = existing?.textModel ?: AiModelDefaults.OPENAI_TEXT_MODEL,
+                imageModel = existing?.imageModel,
                 enabled = true,
             ),
         )
+    }
+
+    override suspend fun saveOpenAiCodexTextModel(textModel: String) {
+        val trimmed = textModel.trim()
+        require(trimmed.isNotBlank()) { "Enter a text model before saving." }
+        val existing = aiProviderConfigDao.getById(OPENAI_CODEX_CONFIG_ID)
+            ?: error("Connect an OpenAI account before saving its model.")
+        aiProviderConfigDao.upsert(existing.copy(textModel = trimmed))
     }
 
     override suspend fun setEnabled(id: String, enabled: Boolean) {

@@ -6,6 +6,8 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import org.arcanaforge.app.AppContainer
 import org.arcanaforge.app.ui.screens.cardeditor.CardEditorViewModel
+import org.arcanaforge.app.ui.screens.charts.NatalChartDetailViewModel
+import org.arcanaforge.app.ui.screens.charts.NatalChartLibraryViewModel
 import org.arcanaforge.app.ui.screens.deckeditor.DeckEditorViewModel
 import org.arcanaforge.app.ui.screens.decks.DeckLibraryViewModel
 import org.arcanaforge.app.ui.screens.home.HomeViewModel
@@ -76,6 +78,17 @@ class AppViewModelFactory(
             modelClass.isAssignableFrom(LayoutEditorViewModel::class.java) -> LayoutEditorViewModel(
                 savedStateHandle = savedStateHandle,
                 layoutRepository = container.layoutRepository,
+            ) as T
+
+            modelClass.isAssignableFrom(NatalChartLibraryViewModel::class.java) -> NatalChartLibraryViewModel(
+                natalChartRepository = container.natalChartRepository,
+            ) as T
+
+            modelClass.isAssignableFrom(NatalChartDetailViewModel::class.java) -> NatalChartDetailViewModel(
+                savedStateHandle = savedStateHandle,
+                natalChartRepository = container.natalChartRepository,
+                natalChartAiChatRepository = container.natalChartAiChatRepository,
+                readingAiService = container.readingAiService,
             ) as T
 
             modelClass.isAssignableFrom(ScheduleViewModel::class.java) -> ScheduleViewModel(

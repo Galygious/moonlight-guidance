@@ -8,6 +8,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Interests
+import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Style
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -20,6 +21,7 @@ sealed class Screen(
     data object Home : Screen("home", "Home", Icons.Outlined.Home)
     data object Decks : Screen("decks", "Decks", Icons.AutoMirrored.Outlined.LibraryBooks)
     data object Readings : Screen("readings", "Readings", Icons.Outlined.AutoStories)
+    data object Charts : Screen("charts", "Charts", Icons.Outlined.Public)
     data object Layouts : Screen("layouts", "Layouts", Icons.Outlined.Interests)
     data object Schedule : Screen("schedule", "Schedule", Icons.Outlined.CalendarMonth)
     data object Settings : Screen("settings", "Settings", Icons.Outlined.Settings)
@@ -55,11 +57,15 @@ sealed class Screen(
         fun createRoute(layoutId: String): String = "layout_editor/$layoutId"
     }
 
+    data object NatalChartDetail : Screen("chart_detail/{chartId}", "Natal Chart", Icons.Outlined.Public) {
+        fun createRoute(chartId: String): String = "chart_detail/$chartId"
+    }
+
     companion object {
         val topLevel: List<Screen>
-            get() = listOf(Home, Decks, Readings, Layouts, Schedule)
+            get() = listOf(Home, Decks, Readings, Charts, Layouts, Schedule)
 
         val all: List<Screen>
-            get() = topLevel + Settings + ImportExport + DeckEditor + CardEditor + ReadingCreate + ReadingDetail + LayoutEditor
+            get() = topLevel + Settings + ImportExport + DeckEditor + CardEditor + ReadingCreate + ReadingDetail + LayoutEditor + NatalChartDetail
     }
 }
