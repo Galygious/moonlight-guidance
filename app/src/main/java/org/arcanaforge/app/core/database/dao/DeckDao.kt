@@ -16,6 +16,9 @@ interface DeckDao {
     @Query("SELECT * FROM decks ORDER BY is_favorite DESC, updated_at DESC, name COLLATE NOCASE ASC")
     fun observeDecks(): Flow<List<DeckEntity>>
 
+    @Query("SELECT * FROM decks WHERE id = :id")
+    fun observeDeck(id: String): Flow<DeckEntity?>
+
     @Query("SELECT * FROM decks WHERE is_favorite = 1 ORDER BY updated_at DESC LIMIT :limit")
     fun observeFavoriteDecks(limit: Int): Flow<List<DeckEntity>>
 

@@ -1,23 +1,39 @@
 package org.arcanaforge.app.core.database
 
+import android.content.Context
+import android.graphics.BitmapFactory
 import androidx.room.withTransaction
+import java.io.File
 import java.time.Instant
 import org.arcanaforge.app.core.database.entity.CardEntity
 import org.arcanaforge.app.core.database.entity.DeckEntity
 import org.arcanaforge.app.core.database.entity.LayoutEntity
 import org.arcanaforge.app.core.database.entity.LayoutSlotEntity
+import org.arcanaforge.app.core.database.entity.StoredImageEntity
 import org.arcanaforge.app.domain.correspondence.CardCorrespondences
 import org.arcanaforge.app.domain.deck.DeckType
+import org.arcanaforge.app.domain.image.ImageSource
 
 class DatabaseSeeder(
     private val database: AppDatabase,
+    private val context: Context? = null,
 ) {
     suspend fun seedIfNeeded() {
         database.withTransaction {
             seedSampleDeck()
+            seedStandardTarotDeck()
             seedOneCardLayout()
             seedThreeCardLayout()
             seedSevenChakraLayout()
+        }
+
+        context?.let {
+            val now = Instant.now()
+            attachStandardTarotImages(
+                context = it,
+                cards = buildStandardTarotCards(deckId = STANDARD_TAROT_DECK_ID, now = now),
+                now = now,
+            )
         }
     }
 
@@ -100,6 +116,187 @@ class DatabaseSeeder(
                 ),
             ),
         )
+    }
+
+    private suspend fun seedStandardTarotDeck() {
+        val deckId = STANDARD_TAROT_DECK_ID
+
+        val now = Instant.now()
+        if (database.deckDao().getDeck(deckId) == null) {
+            database.deckDao().insert(
+                DeckEntity(
+                    id = deckId,
+                    name = "Standard Tarot",
+                    description = "A complete 78-card Rider-Waite-Smith tarot starter deck with editable meanings.",
+                    author = "Pamela Colman Smith / Arcana Forge",
+                    deckType = DeckType.Tarot,
+                    reversalsEnabled = true,
+                    correspondenceSystems = listOf("elements", "zodiac", "planets", "colors"),
+                    tags = listOf("default", "tarot", "starter"),
+                    isFavorite = true,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
+        }
+
+        val standardTarotCards = buildStandardTarotCards(deckId = deckId, now = now)
+        if (database.cardDao().countCardsForDeck(deckId) < standardTarotCards.size) {
+            database.cardDao().insertAll(standardTarotCards)
+        }
+        fillMissingStandardTarotDetails(standardTarotCards, now)
+
+    }
+
+    private suspend fun fillMissingStandardTarotDetails(cards: List<CardEntity>, now: Instant) {
+        cards.forEach { seededCard ->
+            val currentCard = database.cardDao().getCard(seededCard.id) ?: return@forEach
+            val updatedCard = currentCard.copy(
+                subtitle = currentCard.subtitle.ifBlank { seededCard.subtitle },
+                suit = currentCard.suit.ifBlank { seededCard.suit },
+                group = currentCard.group.ifBlank { seededCard.group },
+                keywords = currentCard.keywords.ifEmpty { seededCard.keywords },
+                uprightMeaning = currentCard.uprightMeaning.ifBlank { seededCard.uprightMeaning },
+                reversedMeaning = currentCard.reversedMeaning.ifBlank { seededCard.reversedMeaning },
+            )
+            if (updatedCard != currentCard) {
+                database.cardDao().upsert(updatedCard.copy(updatedAt = now))
+            }
+        }
+    }
+
+    private fun buildStandardTarotCards(deckId: String, now: Instant): List<CardEntity> {
+        val majorArcana = listOf(
+            "The Fool",
+            "The Magician",
+            "The High Priestess",
+            "The Empress",
+            "The Emperor",
+            "The Hierophant",
+            "The Lovers",
+            "The Chariot",
+            "Strength",
+            "The Hermit",
+            "Wheel of Fortune",
+            "Justice",
+            "The Hanged Man",
+            "Death",
+            "Temperance",
+            "The Devil",
+            "The Tower",
+            "The Star",
+            "The Moon",
+            "The Sun",
+            "Judgement",
+            "The World",
+        )
+
+        val ranks = listOf(
+            "Ace",
+            "Two",
+            "Three",
+            "Four",
+            "Five",
+            "Six",
+            "Seven",
+            "Eight",
+            "Nine",
+            "Ten",
+            "Page",
+            "Knight",
+            "Queen",
+            "King",
+        )
+        val suits = listOf("Wands", "Cups", "Swords", "Pentacles")
+
+        val majorCards = majorArcana.mapIndexed { index, title ->
+            val cardId = "standard-tarot-major-${index.toString().padStart(2, '0')}"
+            val meaning = StandardTarotMeanings.forCard(cardId)
+            CardEntity(
+                id = cardId,
+                deckId = deckId,
+                title = title,
+                subtitle = "Major Arcana",
+                orderIndex = index,
+                group = "Major Arcana",
+                keywords = meaning?.keywords.orEmpty(),
+                uprightMeaning = meaning?.uprightMeaning.orEmpty(),
+                reversedMeaning = meaning?.reversedMeaning.orEmpty(),
+                createdAt = now,
+                updatedAt = now,
+            )
+        }
+
+        val minorCards = suits.flatMapIndexed { suitIndex, suit ->
+            ranks.mapIndexed { rankIndex, rank ->
+                val orderIndex = majorArcana.size + suitIndex * ranks.size + rankIndex
+                val cardId = "standard-tarot-${suit.lowercase()}-${rank.lowercase()}"
+                val meaning = StandardTarotMeanings.forCard(cardId)
+                CardEntity(
+                    id = cardId,
+                    deckId = deckId,
+                    title = "$rank of $suit",
+                    subtitle = suit,
+                    orderIndex = orderIndex,
+                    suit = suit,
+                    group = "Minor Arcana",
+                    keywords = meaning?.keywords.orEmpty(),
+                    uprightMeaning = meaning?.uprightMeaning.orEmpty(),
+                    reversedMeaning = meaning?.reversedMeaning.orEmpty(),
+                    createdAt = now,
+                    updatedAt = now,
+                )
+            }
+        }
+
+        return majorCards + minorCards
+    }
+
+    private suspend fun attachStandardTarotImages(
+        context: Context,
+        cards: List<CardEntity>,
+        now: Instant,
+    ) {
+        cards.forEach { seededCard ->
+            val image = ensureStandardTarotImage(context, seededCard.id, now)
+            val currentCard = database.cardDao().getCard(seededCard.id)
+            if (currentCard != null && currentCard.imageId != image.id) {
+                database.cardDao().upsert(currentCard.copy(imageId = image.id, updatedAt = now))
+            }
+        }
+    }
+
+    private suspend fun ensureStandardTarotImage(
+        context: Context,
+        cardId: String,
+        now: Instant,
+    ): StoredImageEntity {
+        val imageId = "seed-image-$cardId"
+        val imageDir = File(context.filesDir, "images/cards").apply { mkdirs() }
+        val imageFile = File(imageDir, "$imageId.jpg")
+        val assetPath = "seed/tarot/rws1909/$cardId.jpg"
+
+        if (!imageFile.exists() || imageFile.length() == 0L) {
+            context.assets.open(assetPath).use { input ->
+                imageFile.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(imageFile.absolutePath, options)
+        val storedImage = StoredImageEntity(
+            id = imageId,
+            localPath = imageFile.absolutePath,
+            thumbnailPath = imageFile.absolutePath,
+            mimeType = "image/jpeg",
+            width = options.outWidth,
+            height = options.outHeight,
+            source = ImageSource.Imported,
+            provider = "Rider-Waite-Smith public-domain seed asset",
+            createdAt = now,
+        )
+        database.storedImageDao().upsert(storedImage)
+        return storedImage
     }
 
     private suspend fun seedOneCardLayout() {
@@ -245,5 +442,6 @@ class DatabaseSeeder(
 
     companion object {
         const val SAMPLE_ORACLE_DECK_ID = "sample-deck-moonlit-oracle"
+        const val STANDARD_TAROT_DECK_ID = "default-deck-standard-tarot"
     }
 }

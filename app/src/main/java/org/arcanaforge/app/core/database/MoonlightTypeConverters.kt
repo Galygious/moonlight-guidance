@@ -6,6 +6,8 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import org.arcanaforge.app.domain.ai.AiAuthMode
+import org.arcanaforge.app.domain.ai.AiChatRole
 import org.arcanaforge.app.domain.ai.AiProviderType
 import org.arcanaforge.app.domain.correspondence.CardCorrespondences
 import org.arcanaforge.app.domain.deck.DeckType
@@ -89,4 +91,16 @@ class MoonlightTypeConverters {
 
     @TypeConverter
     fun stringToAiProviderType(value: String): AiProviderType = enumValueOf(value)
+
+    @TypeConverter
+    fun aiAuthModeToString(value: AiAuthMode): String = value.name
+
+    @TypeConverter
+    fun stringToAiAuthMode(value: String): AiAuthMode = enumValueOf(value)
+
+    @TypeConverter
+    fun aiChatRoleToString(value: AiChatRole): String = value.name
+
+    @TypeConverter
+    fun stringToAiChatRole(value: String): AiChatRole = enumValueOf(value)
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,7 @@ import org.arcanaforge.app.ui.components.EmptyState
 @Composable
 fun DeckLibraryScreen(
     viewModelFactory: ViewModelProvider.Factory,
+    onOpenDeck: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: DeckLibraryViewModel = viewModel(factory = viewModelFactory)
@@ -47,8 +49,9 @@ fun DeckLibraryScreen(
     DeckLibraryContent(
         uiState = uiState,
         onSearchChange = viewModel::updateSearchQuery,
-        onCreateDeck = viewModel::createDeck,
+        onCreateDeck = { viewModel.createDeck(onOpenDeck) },
         onToggleFavorite = viewModel::toggleFavorite,
+        onOpenDeck = onOpenDeck,
         modifier = modifier,
     )
 }
@@ -59,6 +62,7 @@ private fun DeckLibraryContent(
     onSearchChange: (String) -> Unit,
     onCreateDeck: () -> Unit,
     onToggleFavorite: (DeckEntity) -> Unit,
+    onOpenDeck: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -140,6 +144,7 @@ private fun DeckLibraryContent(
             items(uiState.decks, key = { it.id }) { deck ->
                 DeckRow(
                     deck = deck,
+                    onOpen = { onOpenDeck(deck.id) },
                     onToggleFavorite = { onToggleFavorite(deck) },
                 )
             }
@@ -150,9 +155,14 @@ private fun DeckLibraryContent(
 @Composable
 private fun DeckRow(
     deck: DeckEntity,
+    onOpen: () -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
-    Card {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

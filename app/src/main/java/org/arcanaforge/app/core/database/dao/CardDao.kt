@@ -14,8 +14,20 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE deck_id = :deckId ORDER BY order_index ASC, title COLLATE NOCASE ASC")
     fun observeCardsForDeck(deckId: String): Flow<List<CardEntity>>
 
+    @Query("SELECT * FROM cards WHERE deck_id = :deckId ORDER BY order_index ASC, title COLLATE NOCASE ASC")
+    suspend fun getCardsForDeck(deckId: String): List<CardEntity>
+
+    @Query("SELECT * FROM cards WHERE id = :id")
+    fun observeCard(id: String): Flow<CardEntity?>
+
+    @Query("SELECT * FROM cards WHERE id = :id")
+    suspend fun getCard(id: String): CardEntity?
+
     @Query("SELECT COUNT(*) FROM cards WHERE deck_id = :deckId")
     suspend fun countCardsForDeck(deckId: String): Int
+
+    @Query("SELECT COALESCE(MAX(order_index), -1) + 1 FROM cards WHERE deck_id = :deckId")
+    suspend fun nextOrderIndex(deckId: String): Int
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(card: CardEntity): Long

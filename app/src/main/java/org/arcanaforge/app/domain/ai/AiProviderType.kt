@@ -8,6 +8,9 @@ enum class AiProviderType {
     @SerialName("openai")
     OpenAi,
 
+    @SerialName("openai_codex")
+    OpenAiCodex,
+
     @SerialName("stability")
     Stability,
 

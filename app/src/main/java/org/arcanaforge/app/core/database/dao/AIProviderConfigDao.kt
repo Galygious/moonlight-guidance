@@ -13,6 +13,12 @@ interface AIProviderConfigDao {
     @Query("SELECT * FROM ai_provider_configs ORDER BY enabled DESC, name COLLATE NOCASE ASC")
     fun observeConfigs(): Flow<List<AIProviderConfigEntity>>
 
+    @Query("SELECT * FROM ai_provider_configs WHERE id = :id")
+    suspend fun getById(id: String): AIProviderConfigEntity?
+
+    @Query("SELECT * FROM ai_provider_configs WHERE enabled = 1 ORDER BY name COLLATE NOCASE ASC LIMIT 1")
+    suspend fun getEnabledConfig(): AIProviderConfigEntity?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(config: AIProviderConfigEntity): Long
 

@@ -20,6 +20,15 @@ interface LayoutDao {
     @Query("SELECT * FROM layout_slots WHERE layout_id = :layoutId ORDER BY draw_order ASC")
     suspend fun getSlotsForLayout(layoutId: String): List<LayoutSlotEntity>
 
+    @Query("SELECT * FROM layout_slots WHERE layout_id = :layoutId ORDER BY draw_order ASC")
+    fun observeSlotsForLayout(layoutId: String): Flow<List<LayoutSlotEntity>>
+
+    @Query("SELECT * FROM layout_slots WHERE id = :id")
+    suspend fun getSlot(id: String): LayoutSlotEntity?
+
+    @Query("SELECT COUNT(*) FROM layout_slots WHERE layout_id = :layoutId")
+    suspend fun countSlotsForLayout(layoutId: String): Int
+
     @Query("SELECT COUNT(*) FROM layouts WHERE id = :id")
     suspend fun countLayoutById(id: String): Int
 
@@ -37,6 +46,9 @@ interface LayoutDao {
 
     @Upsert
     suspend fun upsertSlot(slot: LayoutSlotEntity)
+
+    @Query("DELETE FROM layout_slots WHERE id = :id")
+    suspend fun deleteSlotById(id: String)
 
     @Query("DELETE FROM layouts WHERE id = :id")
     suspend fun deleteLayoutById(id: String)

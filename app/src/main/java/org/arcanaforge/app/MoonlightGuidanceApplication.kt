@@ -2,6 +2,7 @@ package org.arcanaforge.app
 
 import android.app.Application
 import android.util.Log
+import org.arcanaforge.app.core.notifications.ScheduleNotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -16,6 +17,7 @@ class MoonlightGuidanceApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
+        ScheduleNotificationHelper.ensureChannel(this)
         applicationScope.launch {
             runCatching {
                 container.databaseSeeder.seedIfNeeded()

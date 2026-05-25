@@ -55,11 +55,13 @@ class DeckLibraryViewModel(
         searchQuery.value = query
     }
 
-    fun createDeck() {
+    fun createDeck(onCreated: (String) -> Unit) {
         viewModelScope.launch {
             runCatching {
                 val number = uiState.value.decks.count { it.name.startsWith("Custom Deck") } + 1
                 deckRepository.createDeck("Custom Deck $number")
+            }.onSuccess { deck ->
+                onCreated(deck.id)
             }.onFailure { throwable ->
                 errorMessage.value = throwable.message ?: "Deck could not be created."
             }

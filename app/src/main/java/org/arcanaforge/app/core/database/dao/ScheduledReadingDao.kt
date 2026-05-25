@@ -16,6 +16,9 @@ interface ScheduledReadingDao {
     @Query("SELECT * FROM scheduled_readings WHERE enabled = 1 ORDER BY updated_at DESC LIMIT 1")
     fun observeNextEnabledSchedule(): Flow<ScheduledReadingEntity?>
 
+    @Query("SELECT * FROM scheduled_readings WHERE id = :id")
+    suspend fun getSchedule(id: String): ScheduledReadingEntity?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(schedule: ScheduledReadingEntity): Long
 
